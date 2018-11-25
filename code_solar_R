@@ -1,0 +1,144 @@
+---
+title: "solar_hackaton"
+autor: Tom Statham, Julian  Vercruysse, Lenka Hasova
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(geojsonio)
+library(rgdal)
+library(sp)
+library(rgeos)
+```
+
+```{r}
+#set directory
+setwd("C:/Users/haska/Desktop/bristol api")
+setwd()
+getwd()
+
+#load data
+potential <- geojson_read("data/solar_potential/solar-potential.geojson", what='sp', stringsAsFactors = FALSE)
+wards <- readOGR("data/wards", layer = "wards_cut", stringsAsFactors = FALSE)
+feedin <- readOGR("data/feed_in_traffic", layer = "feed-in-tariff-report", stringsAsFactors = FALSE)
+popul <- readOGR("data/population", layer = "population-estimates-2005-2016-2016-ward", stringsAsFactors = FALSE)
+concern <- read.csv(file="data/quality-of-life-2017-18-ward.csv", header=TRUE, sep=';', stringsAsFactors = FALSE)
+```
+
+```{r}
+latlong = "+init=epsg:27700"
+
+potential = spTransform(potential, CRS(latlong))
+wards = spTransform(wards, CRS(latlong))
+feedin = spTransform(feedin, CRS(latlong))
+```
+
+```{r}
+x <- poten[1:10,]
+head(potential@data)
+```
+
+```{r}
+feedin2 <- feedin[which(feedin$technology_=="Photovoltaic"),]
+
+plot(feedin, col='green')
+data.frame(table(ag22$ward_id))
+```
+
+```{r}
+feedid <- over(feedin, wards[,'ward_id'])
+feedin$ward_id <- feedid$ward_id
+```
+
+```{r}
+potential$sum_totirrad <- as.numeric(potential$sum_totirrad)
+potential$sum_electr12 <- as.numeric(potential$sum_electr12)
+potential$sum_co2sav12 <- as.numeric(potential$sum_co2sav12)
+potential$sum_kwp <- as.numeric(potential$sum_kwp)
+
+feedin$installed_c <- as.numeric(feedin$installed_c)
+```
+
+
+```{r}
+ag1 <- data.frame(aggregate(sum_totirrad ~ ward_id ,data=potential, mean))
+ag12 <- data.frame(aggregate(sum_totirrad ~ ward_id ,data=potential, sum))
+ag2 <- data.frame(aggregate(sum_electr12 ~ ward_id ,data=potential, mean))
+ag22 <- data.frame(aggregate(sum_electr12 ~ ward_id ,data=potential, sum))
+ag3 <- data.frame(aggregate(sum_co2sav12 ~ ward_id ,data=potential, mean))
+ag32 <- data.frame(aggregate(sum_co2sav12 ~ ward_id ,data=potential, sum))
+ag4 <- data.frame(aggregate(sum_kwp ~ ward_id, data=potential, mean))
+ag42 <- data.frame(aggregate(sum_kwp ~ ward_id, data=potential, sum))
+
+potential <- potential[order(potential$ward_id, decreasing = T),]
+ag1 <- ag1[order(ag1$ward_id, decreasing = T),]
+ag12 <- ag12[order(ag12$ward_id, decreasing = T),]
+ag2 <- ag2[order(ag2$ward_id, decreasing = T),]
+ag22 <- ag22[order(ag22$ward_id, decreasing = T),]
+ag3 <- ag3[order(ag3$ward_id, decreasing = T),]
+ag32 <- ag32[order(ag32$ward_id, decreasing = T),]
+ag4 <- ag4[order(ag4$ward_id, decreasing = T),]
+ag42 <- ag42[order(ag42$ward_id, decreasing = T),]
+
+wards$mean_insolation <- ag1$sum_totirrad
+wards$sum_insolation <- ag12$sum_totirrad
+wards$mean_PVgene <- ag2$sum_electr12
+wards$sum_PVgene <- ag22$sum_electr12
+wards$mean_co2 <- ag3$sum_co2sav12
+wards$sum_co2 <- ag32$sum_co2sav12
+wards$mean_sum_kwp <- ag4$sum_kwp
+wards$sum_sum_kwp <- ag42$sum_kwp
+plot(wards, col='green')
+```
+
+```{r}
+head(feedin@data)
+```
+
+```{r}
+ag5 <- data.frame(aggregate(installed_c ~ ward_id ,data=feedin, mean))
+ag52 <- data.frame(aggregate(installed_c ~ ward_id ,data=feedin, sum))
+names(ag5) <- c('ward_id', 'mean_installed_capacity')
+names(ag52) <- c('ward_id', 'sum_installed_capacity')
+
+m1 <- merge(wards, ag5, duplicateGeoms=TRUE)
+m2 <- merge(m1, ag52, duplicateGeoms=TRUE)
+
+merged@data
+```
+
+```{r}
+na.function <- function(x){
+  x[is.na(x)] = 0
+  return(x)
+}
+
+merged <- na.function(m2@data)
+
+merged <- merge(wards,merged,by='ward_id',duplicateGeoms=TRUE)
+merged_full <- merged
+merged@data 
+```
+
+```{r}
+# calculate saving
+merged$mean_saving_cost_py <- (merged$mean_PVgene.x*15)/100
+merged$sum_saving_cost_py <- (merged$sum_PVgene.x*15)/100
+```
+
+
+
+
+```{r}
+wsg = "+init=epsg:3857"
+
+merged = spTransform(merged, CRS(wsg))
+proj4string(merged)
+
+writeOGR(merge_full, dsn="E:/hack/final.GeoJSON", layer="merged", driver="GeoJSON")
+
+```
