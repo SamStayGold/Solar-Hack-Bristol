@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Restrict map panning to an area</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.51.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.51.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+    </style>
+</head>
+<body>
+
+<div id='map'></div>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoidGFzdGF0aGFtMSIsImEiOiJjamZ1ejY2bmYxNHZnMnhxbjEydW9sM29hIn0.w9ndNH49d91aeyvxSjKQqg';
+
+
+
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/tastatham1/cjovehd7n0a812rpbzz0n5ke2',
+    center: [-2.594555,51.450625],
+    zoom: 11,
+});
+
+
+map.addControl(new mapboxgl.NavigationControl({ //Add navigation control - North Arrow
+            position: 'top-right' // position of navigation top-right
+        }));  
+  
+map.addControl(new mapboxgl.FullscreenControl()); //Add full screen mode
+
+map.addControl(new mapboxgl.ScaleControl({ //Add scale bar
+    maxWidth: 300,
+    unit: 'imperial'
+}));
+</script>
+
+</body>
+</html>
